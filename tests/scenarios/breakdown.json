@@ -1,0 +1,49 @@
+{
+  "scenario": "breakdown",
+  "profile": "project2",
+  "description": "고장/아크 방전 — 포유파워 Project 2 (CO + 연기 급등)",
+  "params": {
+    "load_amp": 80.0,
+    "base_voltage": 220.0,
+    "threat": "breakdown",
+    "intensity": 1.0
+  },
+  "sensor_packets": {
+    "temperature": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P001",
+      "type": "temperature",
+      "value": 91.3,
+      "unit": "C",
+      "ts": "2026-04-17T10:02:00Z"
+    },
+    "vibration": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P004",
+      "type": "vibration",
+      "value": 84.7,
+      "unit": "Hz",
+      "ts": "2026-04-17T10:02:00Z"
+    },
+    "co": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P002",
+      "type": "co",
+      "value": 312.5,
+      "unit": "PPM",
+      "ts": "2026-04-17T10:02:00Z"
+    },
+    "tobacco": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P003",
+      "type": "tobacco",
+      "value": 45.2,
+      "unit": "%",
+      "ts": "2026-04-17T10:02:00Z"
+    }
+  },
+  "expected_ai": {
+    "state_prefix": "breakdown",
+    "min_threat_prob": 0.7
+  }
+}

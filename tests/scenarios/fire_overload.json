@@ -1,0 +1,49 @@
+{
+  "scenario": "fire_overload",
+  "profile": "project1",
+  "description": "화재/과부하 — 고온, 아크, CO 발생",
+  "params": {
+    "load_amp": 100.0,
+    "base_voltage": 220.0,
+    "threat": "fire_overload",
+    "intensity": 0.9
+  },
+  "sensor_packets": {
+    "temperature": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P001",
+      "type": "temperature",
+      "value": 78.4,
+      "unit": "C",
+      "ts": "2026-04-17T10:01:00Z"
+    },
+    "humidity": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P002",
+      "type": "humidity",
+      "value": 31.2,
+      "unit": "%",
+      "ts": "2026-04-17T10:01:00Z"
+    },
+    "arc": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P003",
+      "type": "arc",
+      "value": 1.0,
+      "unit": "-",
+      "ts": "2026-04-17T10:01:00Z"
+    },
+    "vibration": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P004",
+      "type": "vibration",
+      "value": 72.5,
+      "unit": "Hz",
+      "ts": "2026-04-17T10:01:00Z"
+    }
+  },
+  "expected_ai": {
+    "state_prefix": "fire_overload",
+    "min_threat_prob": 0.5
+  }
+}

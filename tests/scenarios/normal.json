@@ -1,0 +1,49 @@
+{
+  "scenario": "normal",
+  "profile": "project1",
+  "description": "정상 운전 — 20A 부하, 위협 없음",
+  "params": {
+    "load_amp": 20.0,
+    "base_voltage": 220.0,
+    "threat": "Normal",
+    "intensity": 0.0
+  },
+  "sensor_packets": {
+    "temperature": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P001",
+      "type": "temperature",
+      "value": 25.2,
+      "unit": "C",
+      "ts": "2026-04-17T10:00:00Z"
+    },
+    "humidity": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P002",
+      "type": "humidity",
+      "value": 44.8,
+      "unit": "%",
+      "ts": "2026-04-17T10:00:00Z"
+    },
+    "arc": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P003",
+      "type": "arc",
+      "value": 0.0,
+      "unit": "-",
+      "ts": "2026-04-17T10:00:00Z"
+    },
+    "vibration": {
+      "sb_id": "SB-251218085132-P",
+      "device_id": "SS-P004",
+      "type": "vibration",
+      "value": 60.1,
+      "unit": "Hz",
+      "ts": "2026-04-17T10:00:00Z"
+    }
+  },
+  "expected_ai": {
+    "state_prefix": "normal",
+    "max_threat_prob": 0.15
+  }
+}
