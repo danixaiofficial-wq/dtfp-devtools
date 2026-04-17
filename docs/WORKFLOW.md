@@ -118,17 +118,20 @@ Phase 4: 배포
 
 ---
 
-## 물리 엔진 이슈 트래커 (수정 대기)
+## 물리 엔진 이슈 트래커
 
 | 우선순위 | 항목 | 파일 | 상태 |
 |:---|:---|:---|:---|
-| 🔴 긴급 | condensation 시나리오 온도 냉각 로직 제거 | physics.py, Generater.py | 미수정 |
-| 🔴 긴급 | CO 발생 온도 임계 75°C → 100°C (PVC 기준) | physics.py, Generater.py | 미수정 |
-| 🔴 긴급 | 진동 기본 주파수 60Hz → 50Hz (한국 표준) | physics.py, Generater.py | 미수정 |
+| 🔴 긴급 | condensation 시나리오 온도 냉각 로직 제거 | physics.py, Generater.py | ✅ 완료 (2026-04-18) |
+| 🔴 긴급 | CO 발생 온도 임계 75°C → 85°C (학습 시퀀스 절충) | physics.py, Generater.py | ✅ 완료 (2026-04-18) |
+| 🔴 긴급 | 진동 기본 주파수 60Hz → 50Hz (한국 표준) | physics.py, Generater.py | ✅ 완료 (2026-04-18) |
 | 🟠 높음 | I²R 발열 계수 물리 기반 재계산 | physics.py, Generater.py | 미수정 |
-| 🟠 높음 | 온도 시간상수 0.05 → 0.017 (τ=60s) | physics.py, Generater.py | 미수정 |
-| 🟠 높음 | 아크 발생 확률 25% → 2-5% per step | physics.py, Generater.py | 미수정 |
-| 🟡 중간 | CO 아크 발생 +50 PPM → +200 PPM | physics.py, Generater.py | 미수정 |
+| 🟠 높음 | 온도 시간상수 inertia 0.05 유지 (50-step 학습 절충) | physics.py, Generater.py | 보류 (의도적) |
+| 🟠 높음 | 아크 발생 확률 25% → 10% per step | physics.py, Generater.py | ✅ 완료 (2026-04-18) |
+| 🟠 높음 | CO 아크 방출 +50 → +100 PPM | physics.py, Generater.py | ✅ 완료 (2026-04-18) |
+| 🟠 높음 | CO 감쇠 속도 0.05 → 0.02 (밀폐 공간) | physics.py, Generater.py | ✅ 완료 (2026-04-18) |
+| 🟠 높음 | CO 상한 500 PPM 캡 추가 | physics.py, Generater.py | ✅ 완료 (2026-04-18) |
+| 🟡 중간 | 연기/tobacco 임계 CO 100→150, 온도 85→95°C | physics.py, Generater.py | ✅ 완료 (2026-04-18) |
 
 ---
 
