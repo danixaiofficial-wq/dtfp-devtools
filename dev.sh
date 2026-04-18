@@ -11,8 +11,6 @@
 # 종료: Ctrl+C → 모든 프로세스 자동 정리
 # ============================================================
 
-set -e
-
 DEVTOOLS="$(cd "$(dirname "$0")" && pwd)"   # dtfp-devtools/
 DTFP_DIR="$(cd "$DEVTOOLS/.." && pwd)"      # DTFP/
 MQTTGEN="$DTFP_DIR/MqttDataGen"
@@ -24,13 +22,15 @@ warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 err()     { echo -e "${RED}[✘]${NC} $1"; }
 section() { echo -e "\n${CYAN}━━ $1 ━━${NC}"; }
 
-PIDS=()
+PID_BROKER=""
+PID_DASHBOARD=""
+PID_GENERATOR=""
 
 cleanup() {
     echo ""
     warn "종료 중... 모든 프로세스 정리"
-    for pid in "${PIDS[@]}"; do
-        kill "$pid" 2>/dev/null && echo "  killed: $pid"
+    for pid in "$PID_BROKER" "$PID_DASHBOARD" "$PID_GENERATOR"; do
+        [ -n "$pid" ] && kill "$pid" 2>/dev/null && echo "  killed: $pid"
     done
     exit 0
 }
@@ -43,9 +43,13 @@ if ! command -v mosquitto &>/dev/null; then
     exit 1
 fi
 
+# 기존 1883 포트 프로세스 정리
+lsof -ti:1883 | xargs kill -9 2>/dev/null && warn "기존 1883 포트 프로세스 종료" || true
+sleep 1
+
 mosquitto -c "$DEVTOOLS/dev_mosquitto.conf" &
-PIDS+=($!)
-info "Mosquitto 시작 (localhost:1883) pid=${PIDS[-1]}"
+PID_BROKER=$!
+info "Mosquitto 시작 (localhost:1883) pid=$PID_BROKER"
 sleep 1
 
 # ── 2. 대시보드 ───────────────────────────────────────────────
@@ -57,8 +61,8 @@ uv run streamlit run dashboard/dashboard.py \
     --browser.gatherUsageStats=false \
     --global.developmentMode=false \
     &> /tmp/dtfp_dashboard.log &
-PIDS+=($!)
-info "대시보드 시작 pid=${PIDS[-1]} → http://localhost:8501"
+PID_DASHBOARD=$!
+info "대시보드 시작 pid=$PID_DASHBOARD → http://localhost:8501"
 
 # ── 3. 데이터 제너레이터 ──────────────────────────────────────
 section "데이터 제너레이터 (8502)"
@@ -68,8 +72,8 @@ uv run streamlit run Generater.py \
     --server.headless=false \
     --browser.gatherUsageStats=false \
     &> /tmp/dtfp_generator.log &
-PIDS+=($!)
-info "제너레이터 시작 pid=${PIDS[-1]} → http://localhost:8502"
+PID_GENERATOR=$!
+info "제너레이터 시작 pid=$PID_GENERATOR → http://localhost:8502"
 
 sleep 3
 
@@ -80,15 +84,13 @@ open "http://localhost:8502" 2>/dev/null || true
 # ── 4. DTFP 메인 앱 ───────────────────────────────────────────
 section "DTFP 메인 앱"
 cd "$APP_DIR"
-info "앱 시작 (로그는 터미널에 출력)"
 echo ""
-echo -e "${YELLOW}브로커: localhost:1883${NC}"
-echo -e "${YELLOW}대시보드: http://localhost:8501${NC}"
-echo -e "${YELLOW}제너레이터: http://localhost:8502${NC}"
+echo -e "${YELLOW}  브로커:     localhost:1883${NC}"
+echo -e "${YELLOW}  대시보드:   http://localhost:8501${NC}"
+echo -e "${YELLOW}  제너레이터: http://localhost:8502${NC}"
+echo -e "${YELLOW}  종료: Ctrl+C${NC}"
 echo ""
 
-# 로그 레벨 DEBUG로 설정해서 MQTT 메시지 실시간 출력
 DTFP_LOG_LEVEL=DEBUG uv run dtfp-app 2>&1
 
-# 앱 종료 시 cleanup 호출
 cleanup
