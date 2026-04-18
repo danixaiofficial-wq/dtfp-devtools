@@ -10,67 +10,52 @@ from __future__ import annotations
 
 import json
 import queue
+import sys
 import time
 from datetime import datetime
+from pathlib import Path
 
 import paho.mqtt.client as mqtt
 import streamlit as st
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── spec_loader 경로 추가 (dashboard/ 한 단계 위) ─────────────────────────────
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from spec_loader import (  # noqa: E402
+    build_project_sensors_dict,
+    get_mqtt_config,
+    get_severity_levels,
+    get_threat_classes,
+    get_thresholds,
+    load_spec,
+)
 
-SENSOR_TOPICS = [
-    "sensors/device01/data",
-    "sensors/device02/data",
-    "sensors/device03/data",
-    "sensors/device04/data",
-]
-AI_TOPIC = "sb/dashboard/data"
+# ── Constants — interface_spec.json SSoT 로드 ─────────────────────────────────
+# ⚠️  이 블록을 직접 수정하지 마세요. interface_spec.json 을 수정하세요.
 
-PROJECT_SENSORS = {
-    "Project 1 — 전기 구조 모니터링": {
-        "types":  ["temperature", "humidity", "arc", "vibration"],
-        "units":  {"temperature": "°C", "humidity": "%", "arc": "—", "vibration": "Hz"},
-        "labels": {"temperature": "온도", "humidity": "습도", "arc": "아크", "vibration": "진동"},
-        "icons":  {"temperature": "🌡", "humidity": "💧", "arc": "⚡", "vibration": "📳"},
-    },
-    "Project 2 — 화재/가스 감지 (포유파워)": {
-        "types":  ["temperature", "vibration", "co", "tobacco"],
-        "units":  {"temperature": "°C", "vibration": "Hz", "co": "PPM", "tobacco": "%"},
-        "labels": {"temperature": "온도", "vibration": "진동", "co": "CO", "tobacco": "연기"},
-        "icons":  {"temperature": "🌡", "vibration": "📳", "co": "☁️", "tobacco": "🚬"},
-    },
-}
+_spec        = load_spec()
+_mqtt_cfg    = get_mqtt_config()
+_sev         = get_severity_levels()
+_threats     = get_threat_classes()
 
-THREAT_COLORS: dict[str, str] = {
-    "normal":           "#3fb950",
-    "insulation_aging": "#e3b341",
-    "fire_overload":    "#f85149",
-    "condensation":     "#58a6ff",
-    "breakdown":        "#bc8cff",
-}
+# 구독할 센서 토픽 (중복 제거)
+SENSOR_TOPICS: list[str] = list({
+    s["topic"] for s in _spec["sensors"].values()
+})
+AI_TOPIC: str = _mqtt_cfg["ai_publish_topic"]
 
-SEVERITY_COLORS: dict[str, str] = {
-    "CRITICAL": "#f85149",
-    "WARNING":  "#e3703a",
-    "CAUTION":  "#e3b341",
-    "NORMAL":   "#3fb950",
-}
+# 프로젝트별 센서 딕셔너리 (PROJECT_SENSORS 호환 구조)
+PROJECT_SENSORS: dict = build_project_sensors_dict()
 
-SEVERITY_ICONS: dict[str, str] = {
-    "CRITICAL": "🔴",
-    "WARNING":  "🟠",
-    "CAUTION":  "🟡",
-    "NORMAL":   "🟢",
-}
+# 위협 클래스 색상
+THREAT_COLORS: dict[str, str] = {k: v["color"] for k, v in _threats.items()}
 
-# Sensor threshold coloring: (value_threshold, color_hex)
+# 심각도 색상/아이콘
+SEVERITY_COLORS: dict[str, str] = {k: v["color"] for k, v in _sev.items()}
+SEVERITY_ICONS:  dict[str, str] = {k: v["icon"]  for k, v in _sev.items()}
+
+# 센서 임계값 (dashboard 렌더링용)
 _THRESHOLDS: dict[str, list[tuple[float, str]]] = {
-    "temperature": [(50.0, "#e3b341"), (75.0, "#f85149")],
-    "humidity":    [(75.0, "#58a6ff"), (90.0, "#f85149")],
-    "arc":         [(0.5,  "#e3b341"), (1.0,  "#f85149")],
-    "vibration":   [(65.0, "#e3b341"), (80.0, "#f85149")],
-    "co":          [(70.0, "#e3b341"), (150.0, "#f85149")],
-    "tobacco":     [(20.0, "#e3b341"), (40.0,  "#f85149")],
+    s: get_thresholds(s) for s in _spec["sensors"]
 }
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
