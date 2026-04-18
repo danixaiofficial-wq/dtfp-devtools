@@ -18,6 +18,14 @@ APP_DIR="$DTFP_DIR/Release_v2.0.2/dtfp"
 LOGS="$DEVTOOLS/logs"
 mkdir -p "$LOGS"
 
+# Streamlit 최초 실행 이메일 프롬프트 스킵
+mkdir -p ~/.streamlit
+if [ ! -f ~/.streamlit/credentials.toml ]; then
+    echo '[general]' > ~/.streamlit/credentials.toml
+    echo 'email = ""' >> ~/.streamlit/credentials.toml
+    info "Streamlit credentials 설정 완료"
+fi
+
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; CYAN='\033[0;36m'; NC='\033[0m'
 info()    { echo -e "${GREEN}[✔]${NC} $1"; }
 warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
