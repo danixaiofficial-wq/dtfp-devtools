@@ -57,7 +57,7 @@ section "대시보드 (8501)"
 cd "$DEVTOOLS"
 uv run streamlit run dashboard/dashboard.py \
     --server.port=8501 \
-    --server.headless=true \
+    --server.headless=false \
     --browser.gatherUsageStats=false \
     --global.developmentMode=false \
     &> /tmp/dtfp_dashboard.log &
@@ -67,7 +67,7 @@ info "대시보드 시작 pid=$PID_DASHBOARD → http://localhost:8501"
 # ── 3. 데이터 제너레이터 ──────────────────────────────────────
 section "데이터 제너레이터 (8502)"
 cd "$MQTTGEN"
-uv run streamlit run Generater.py \
+uv run --with streamlit streamlit run Generater.py \
     --server.port=8502 \
     --server.headless=false \
     --browser.gatherUsageStats=false \
