@@ -11,12 +11,39 @@ from __future__ import annotations
 import json
 import queue
 import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
 
 import paho.mqtt.client as mqtt
 import streamlit as st
+
+# ── 전역 MQTT 상태 (모듈 재로드 + rerun 사이클 모두 생존) ────────────────────
+@st.cache_resource
+def _get_mqtt_state() -> dict:
+    """모듈 재로드와 rerun에서 모두 살아남는 MQTT 상태 컨테이너."""
+    return {
+        "client":    None,
+        "queue":     queue.Queue(maxsize=500),
+        "connected": threading.Event(),
+    }
+
+
+def _g_state() -> dict:
+    return _get_mqtt_state()
+
+
+def _g_client_get() -> mqtt.Client | None:
+    return _g_state()["client"]
+
+
+def _g_queue_get() -> queue.Queue:
+    return _g_state()["queue"]
+
+
+def _g_connected_get() -> threading.Event:
+    return _g_state()["connected"]
 
 # ── spec_loader 경로 추가 (dashboard/ 한 단계 위) ─────────────────────────────
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -181,7 +208,7 @@ def _ai_banner(state_str: str, timestamp: str, ai_data: dict) -> str:
     ts_short = timestamp[-8:] if len(timestamp) >= 8 else timestamp
 
     ir = ai_data.get("inference_result", {})
-    confidence = ir.get(pred_class, 0.0) if ir else 0.0
+    confidence = ir.get("confidence", 0.0) if ir else 0.0
     conf_text  = f"{confidence:.1%}" if confidence > 0 else "—"
 
     return (
@@ -249,9 +276,6 @@ def _section_label(text: str) -> str:
 
 def _init_state() -> None:
     defaults: dict = {
-        "mqtt_client":    None,
-        "connected":      False,
-        "msg_queue":      queue.Queue(maxsize=200),
         "sensor_latest":  {},
         "ai_latest":      {},
         "sensor_history": {},
@@ -265,7 +289,17 @@ def _init_state() -> None:
 
 # ── MQTT ──────────────────────────────────────────────────────────────────────
 
-def _mqtt_connect(broker: str, port: int):
+def _mqtt_connect(broker: str, port: int) -> None:
+    s = _g_state()
+    # 기존 연결 정리
+    if s["client"] is not None:
+        try:
+            s["client"].loop_stop()
+            s["client"].disconnect()
+        except Exception:
+            pass
+    s["connected"].clear()
+
     try:
         client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     except AttributeError:
@@ -274,15 +308,15 @@ def _mqtt_connect(broker: str, port: int):
     def on_connect(c, *_args):
         for t in SENSOR_TOPICS + [AI_TOPIC]:
             c.subscribe(t)
-        st.session_state.connected = True
+        s["connected"].set()
 
     def on_disconnect(*_args):
-        st.session_state.connected = False
+        s["connected"].clear()
 
     def on_message(_c, _userdata, msg):
         try:
             data = json.loads(msg.payload.decode("utf-8", errors="ignore"))
-            st.session_state.msg_queue.put_nowait({"topic": msg.topic, "data": data})
+            s["queue"].put_nowait({"topic": msg.topic, "data": data})
         except Exception:
             pass
 
@@ -292,11 +326,23 @@ def _mqtt_connect(broker: str, port: int):
     client.reconnect_delay_set(min_delay=1, max_delay=30)
     client.connect(broker, port)
     client.loop_start()
-    return client
+    s["client"] = client
+
+
+def _mqtt_disconnect() -> None:
+    s = _g_state()
+    if s["client"] is not None:
+        try:
+            s["client"].loop_stop()
+            s["client"].disconnect()
+        except Exception:
+            pass
+        s["client"] = None
+    s["connected"].clear()
 
 
 def _drain_queue(active_types: list[str]) -> None:
-    q = st.session_state.msg_queue
+    q = _g_state()["queue"]
     processed = 0
     while not q.empty() and processed < 50:
         item  = q.get_nowait()
@@ -344,7 +390,7 @@ def main() -> None:
         st.divider()
 
         st.markdown("**📡 MQTT 연결**")
-        broker = st.text_input("Broker", value="broker.emqx.io",
+        broker = st.text_input("Broker", value="localhost",
                                 label_visibility="collapsed", placeholder="Broker address")
         port = st.number_input("Port", value=1883, step=1, label_visibility="collapsed")
 
@@ -355,20 +401,14 @@ def main() -> None:
             disconnect_btn = st.button("⏹ 해제", use_container_width=True)
 
         if connect_btn:
-            if st.session_state.mqtt_client:
-                st.session_state.mqtt_client.loop_stop()
-                st.session_state.mqtt_client.disconnect()
             try:
-                st.session_state.mqtt_client = _mqtt_connect(broker, port)
+                _mqtt_connect(broker, port)
                 st.success(f"연결 요청: {broker}:{port}")
             except Exception as e:
                 st.error(f"연결 실패: {e}")
 
-        if disconnect_btn and st.session_state.mqtt_client:
-            st.session_state.mqtt_client.loop_stop()
-            st.session_state.mqtt_client.disconnect()
-            st.session_state.connected = False
-            st.session_state.mqtt_client = None
+        if disconnect_btn:
+            _mqtt_disconnect()
 
         st.divider()
         st.markdown("**🧩 프로젝트 프로필**")
@@ -395,7 +435,7 @@ def main() -> None:
     _drain_queue(active_types)
 
     # Connection status bar
-    if st.session_state.connected:
+    if _g_state()["connected"].is_set():
         st.markdown(
             '<div style="background:#1a3a1a;border:1px solid #3fb95055;border-radius:8px;'
             'padding:9px 16px;color:#3fb950;font-size:13px;font-weight:600;margin-bottom:10px;">'
@@ -416,10 +456,13 @@ def main() -> None:
     ai = st.session_state.ai_latest
     pred_class = ""
     if ai:
-        state_str  = ai.get("state", "unknown")
+        ir_data    = ai.get("inference_result", {})
+        pred_class = ir_data.get("predicted_class", "unknown")
+        warning_level = ir_data.get("warning_level", "Normal")
+        _wl_to_sev = {"Normal": "NORMAL", "Caution": "CAUTION", "Warning": "WARNING", "Danger": "CRITICAL"}
+        severity   = _wl_to_sev.get(warning_level, "NORMAL")
+        state_str  = f"{pred_class}_{severity}"
         timestamp  = ai.get("timestamp", "—")
-        parts      = state_str.rsplit("_", 1)
-        pred_class = parts[0] if len(parts) == 2 else state_str
 
         st.markdown(_ai_banner(state_str, timestamp, ai), unsafe_allow_html=True)
 
@@ -481,13 +524,14 @@ def main() -> None:
     with right_col:
         # ── Probability Bars ──────────────────────────────────────────────────
         if ai:
-            ir = ai.get("inference_result", {})
-            if ir:
+            ir_full = ai.get("inference_result", {})
+            probs   = ir_full.get("probabilities", {})
+            if probs:
                 st.markdown(_section_label("위협 분류 확률"), unsafe_allow_html=True)
                 st.markdown(
                     '<div style="background:#161b22;border:1px solid #21262d;'
                     'border-radius:10px;padding:16px 18px;">'
-                    + _prob_bars_html(ir, pred_class)
+                    + _prob_bars_html(probs, pred_class)
                     + '</div>',
                     unsafe_allow_html=True,
                 )
@@ -502,7 +546,9 @@ def main() -> None:
             )
 
     # ── Auto-refresh ──────────────────────────────────────────────────────────
-    if st.session_state.connected or not st.session_state.msg_queue.empty():
+    # mqtt_client 객체가 존재하면 항상 rerun (connected 플래그는 백그라운드 스레드 이슈)
+    s = _g_state()
+    if s["client"] is not None or not s["queue"].empty():
         time.sleep(0.5)
         st.rerun()
 
