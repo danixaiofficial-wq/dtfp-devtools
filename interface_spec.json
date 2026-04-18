@@ -1,0 +1,118 @@
+{
+  "_comment": "DTFP 인터페이스 스펙 v1.9 — Single Source of Truth",
+  "_rule": "이 파일만 수정하면 3개 앱(MqttDataGen/DTFP/dtfp-devtools)에 자동 반영됩니다.",
+  "version": "1.9",
+  "updated": "2026-04-19",
+
+  "sb_id": "SB-251218085132-P",
+
+  "sensors": {
+    "temperature": {
+      "unit": "C",
+      "device_id": "SS-P001",
+      "device_suffix": "device01",
+      "topic": "sensors/device01/data",
+      "label_ko": "온도",
+      "label_en": "Temperature",
+      "icon": "🌡"
+    },
+    "humidity": {
+      "unit": "%",
+      "device_id": "SS-P002",
+      "device_suffix": "device02",
+      "topic": "sensors/device02/data",
+      "label_ko": "습도",
+      "label_en": "Humidity",
+      "icon": "💧"
+    },
+    "arc": {
+      "unit": "-",
+      "device_id": "SS-P003",
+      "device_suffix": "device03",
+      "topic": "sensors/device03/data",
+      "label_ko": "아크",
+      "label_en": "Arc",
+      "icon": "⚡"
+    },
+    "vibration": {
+      "unit": "Hz",
+      "device_id": "SS-P004",
+      "device_suffix": "device04",
+      "topic": "sensors/device04/data",
+      "label_ko": "진동",
+      "label_en": "Vibration",
+      "icon": "📳"
+    },
+    "co": {
+      "unit": "PPM",
+      "device_id": "SS-P002",
+      "device_suffix": "device02",
+      "topic": "sensors/device02/data",
+      "label_ko": "일산화탄소",
+      "label_en": "CO",
+      "icon": "☁️"
+    },
+    "tobacco": {
+      "unit": "%",
+      "device_id": "SS-P003",
+      "device_suffix": "device03",
+      "topic": "sensors/device03/data",
+      "label_ko": "연기",
+      "label_en": "Smoke",
+      "icon": "🚬"
+    }
+  },
+
+  "projects": {
+    "project1": {
+      "name_ko": "전기 구조 모니터링",
+      "name_en": "Electrical Structure Monitoring",
+      "display_ko": "Project 1 — 전기 구조 모니터링",
+      "sensors": ["temperature", "humidity", "arc", "vibration"]
+    },
+    "project2": {
+      "name_ko": "화재/가스 감지",
+      "name_en": "Fire/Gas Detection",
+      "display_ko": "Project 2 — 화재/가스 감지 (포유파워)",
+      "sensors": ["temperature", "vibration", "co", "tobacco"]
+    }
+  },
+
+  "thresholds": {
+    "_comment": "[[값, 색상코드], ...] 오름차순. 가장 높은 임계 초과 시 해당 색상 적용.",
+    "temperature": [[50.0, "#e3b341"], [75.0, "#f85149"]],
+    "humidity":    [[75.0, "#58a6ff"], [90.0, "#f85149"]],
+    "arc":         [[0.5,  "#e3b341"], [1.0,  "#f85149"]],
+    "vibration":   [[65.0, "#e3b341"], [80.0, "#f85149"]],
+    "co":          [[70.0, "#e3b341"], [150.0, "#f85149"]],
+    "tobacco":     [[20.0, "#e3b341"], [40.0,  "#f85149"]]
+  },
+
+  "threat_classes": {
+    "normal":           { "label_ko": "정상",      "color": "#3fb950" },
+    "fire_overload":    { "label_ko": "화재/과부하", "color": "#f85149" },
+    "insulation_aging": { "label_ko": "절연열화",   "color": "#e3b341" },
+    "condensation":     { "label_ko": "결로",       "color": "#58a6ff" },
+    "breakdown":        { "label_ko": "고장",       "color": "#bc8cff" }
+  },
+
+  "severity_levels": {
+    "CRITICAL": { "color": "#f85149", "icon": "🔴" },
+    "WARNING":  { "color": "#e3703a", "icon": "🟠" },
+    "CAUTION":  { "color": "#e3b341", "icon": "🟡" },
+    "NORMAL":   { "color": "#3fb950", "icon": "🟢" }
+  },
+
+  "mqtt": {
+    "sensor_topic_pattern": "sensors/{device_suffix}/data",
+    "ai_publish_topic": "sb/dashboard/data",
+    "default_broker": "broker.emqx.io",
+    "default_port": 1883
+  },
+
+  "payload": {
+    "value_decimal_places": 1,
+    "timestamp_format": "ISO8601_UTC",
+    "required_keys": ["sb_id", "device_id", "type", "value", "unit", "ts"]
+  }
+}
