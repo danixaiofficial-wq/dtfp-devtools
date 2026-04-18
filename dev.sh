@@ -15,6 +15,8 @@ DEVTOOLS="$(cd "$(dirname "$0")" && pwd)"   # dtfp-devtools/
 DTFP_DIR="$(cd "$DEVTOOLS/.." && pwd)"      # DTFP/
 MQTTGEN="$DTFP_DIR/MqttDataGen"
 APP_DIR="$DTFP_DIR/Release_v2.0.2/dtfp"
+LOGS="$DEVTOOLS/logs"
+mkdir -p "$LOGS"
 
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; CYAN='\033[0;36m'; NC='\033[0m'
 info()    { echo -e "${GREEN}[✔]${NC} $1"; }
@@ -47,9 +49,9 @@ fi
 lsof -ti:1883 | xargs kill -9 2>/dev/null && warn "기존 1883 포트 프로세스 종료" || true
 sleep 1
 
-mosquitto -c "$DEVTOOLS/dev_mosquitto.conf" &
+mosquitto -c "$DEVTOOLS/dev_mosquitto.conf" &> "$LOGS/broker.log" &
 PID_BROKER=$!
-info "Mosquitto 시작 (localhost:1883) pid=$PID_BROKER"
+info "Mosquitto 시작 (localhost:1883) pid=$PID_BROKER  → logs/broker.log"
 sleep 1
 
 # ── 2. 대시보드 ───────────────────────────────────────────────
@@ -60,9 +62,9 @@ uv run streamlit run dashboard/dashboard.py \
     --server.headless=false \
     --browser.gatherUsageStats=false \
     --global.developmentMode=false \
-    &> /tmp/dtfp_dashboard.log &
+    &> "$LOGS/dashboard.log" &
 PID_DASHBOARD=$!
-info "대시보드 시작 pid=$PID_DASHBOARD → http://localhost:8501"
+info "대시보드 시작 pid=$PID_DASHBOARD → logs/dashboard.log"
 
 # ── 3. 데이터 제너레이터 ──────────────────────────────────────
 section "데이터 제너레이터 (8502)"
@@ -71,9 +73,9 @@ uv run --with streamlit streamlit run Generater.py \
     --server.port=8502 \
     --server.headless=false \
     --browser.gatherUsageStats=false \
-    &> /tmp/dtfp_generator.log &
+    &> "$LOGS/generator.log" &
 PID_GENERATOR=$!
-info "제너레이터 시작 pid=$PID_GENERATOR → http://localhost:8502"
+info "제너레이터 시작 pid=$PID_GENERATOR → logs/generator.log"
 
 sleep 3
 
