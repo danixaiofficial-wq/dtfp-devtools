@@ -77,7 +77,7 @@ info "대시보드 시작 pid=$PID_DASHBOARD → logs/dashboard.log"
 # ── 3. 데이터 제너레이터 ──────────────────────────────────────
 section "데이터 제너레이터 (8502)"
 cd "$MQTTGEN"
-uv run --with streamlit streamlit run Generater.py \
+uv run streamlit run Generater.py \
     --server.port=8502 \
     --server.headless=false \
     --browser.gatherUsageStats=false \
