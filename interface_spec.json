@@ -106,7 +106,7 @@
   "mqtt": {
     "sensor_topic_pattern": "sensors/{device_suffix}/data",
     "ai_publish_topic": "sb/dashboard/data",
-    "default_broker": "broker.emqx.io",
+    "default_broker": "localhost",
     "default_port": 1883
   },
 
