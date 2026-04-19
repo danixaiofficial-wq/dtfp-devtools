@@ -65,15 +65,15 @@
 
   "projects": {
     "project1": {
-      "name_ko": "전기 구조 모니터링",
-      "name_en": "Electrical Structure Monitoring",
-      "display_ko": "Project 1 — 전기 구조 모니터링",
+      "name_ko": "KD POWER",
+      "name_en": "KD POWER",
+      "display_ko": "KD POWER — 전기 구조 모니터링",
       "sensors": ["temperature", "humidity", "arc", "vibration"]
     },
     "project2": {
-      "name_ko": "화재/가스 감지",
-      "name_en": "Fire/Gas Detection",
-      "display_ko": "Project 2 — 화재/가스 감지 (포유파워)",
+      "name_ko": "포유파워",
+      "name_en": "Poyu Power",
+      "display_ko": "포유파워 — 화재/가스 감지",
       "sensors": ["temperature", "vibration", "co", "tobacco"]
     }
   },
